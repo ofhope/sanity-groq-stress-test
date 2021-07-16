@@ -11,19 +11,6 @@ import (
 	"github.com/ofhope/sanity-groq-stress-test/src/lib"
 )
 
-func processFile(path string, client lib.Client) {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatalf("Can't read file path %s", path)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		go client.RunQuery(scanner.Text())
-	}
-}
-
 func main() {
 	envFile := *flag.String("e", ".env", "optionally specify an env file with `example.env`")
 	flag.Parse()
@@ -35,13 +22,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := godotenv.Load(envFile)
+	file, err := os.Open(inputFile)
 	if err != nil {
+		log.Fatalf("Can't read file path %s", inputFile)
+	}
+	defer file.Close()
+
+	if godotenv.Load(envFile) != nil {
 		log.Fatalf("No env file found. Please include one with SANITY config.")
 	}
 
+	ch := make(chan string)
 	client := lib.NewClient()
-	processFile(inputFile, client)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		go client.RunQuery(scanner.Text(), ch)
+	}
+	scanner = bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(<-ch)
+	}
 	for {
 	}
 }

@@ -36,15 +36,14 @@ func NewClient() Client {
 	}
 }
 
-func (c *Client) RunQuery(rawQuery string) {
+func (c *Client) RunQuery(rawQuery string, ch chan<- string) {
 	query := c.instance.Query(rawQuery)
 
 	result, err := query.Do(context.Background())
 	if err != nil {
+		ch <- fmt.Sprintf("Error while running query %v", err)
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Time %d \n", result.Time)
-	bytes, err := result.Result.MarshalJSON()
-	fmt.Printf("Result %s \n", string(bytes))
+	ch <- result.Time.String()
 }
