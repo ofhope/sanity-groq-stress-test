@@ -1,2 +1,2 @@
 #!/bin/bash
-go build -o ./bin/santiy-test ./src/main.go
+go build -o ./bin/sanity-test ./src/main.go
