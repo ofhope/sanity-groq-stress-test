@@ -1,57 +1,47 @@
 package main
 
 import (
-	"context"
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
-	sanity "github.com/sanity-io/client-go"
+	"github.com/ofhope/sanity-groq-stress-test/src/lib"
 )
 
+func processFile(path string, client lib.Client) {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("Can't read file path %s", path)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		go client.RunQuery(scanner.Text())
+	}
+}
+
 func main() {
+	envFile := *flag.String("e", ".env", "optionally specify an env file with `example.env`")
+	flag.Parse()
 
-	envFile := flag.String("e", ".env", "optionally specify an env file with `example.env`")
-
-	err := godotenv.Load(*envFile)
-	if err != nil {
-		log.Fatalf("No env file found")
+	inputFile := flag.Arg(0)
+	if inputFile == "" {
+		fmt.Println("You must pass a text file as an argument.")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
 
-	projectId := os.Getenv("SANITY_STUDIO_PROJECT_ID")
-	dataset := os.Getenv("SANITY_STUDIO_API_DATASET")
-	token := os.Getenv("SANITY_STUDIO_TOKEN")
-
-	client, err := sanity.New(projectId,
-		sanity.WithCallbacks(sanity.Callbacks{
-			OnQueryResult: func(result *sanity.QueryResult) {
-				log.Printf("Sanity queried in %d ms!", result.Time)
-			},
-		}),
-		sanity.WithToken(token),
-		sanity.WithDataset(dataset))
+	err := godotenv.Load(envFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("No env file found. Please include one with SANITY config.")
 	}
 
-	fmt.Printf("Connected to project:%s dataset:%s\n", projectId, dataset)
-
-	rawQuery := `
-		*[]{
-			_id,
-			body[_type match $type]
-		}
-	`
-	query := client.Query(rawQuery)
-
-	result, err := query.Do(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	client := lib.NewClient()
+	processFile(inputFile, client)
+	for {
 	}
-
-	fmt.Printf("Time %d \n", result.Time)
-	bytes, err := result.Result.MarshalJSON()
-	fmt.Printf("Result %s \n", string(bytes))
 }
