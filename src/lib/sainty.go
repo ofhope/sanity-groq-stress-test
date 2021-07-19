@@ -13,10 +13,18 @@ type Client struct {
 	instance *sanity.Client
 }
 
+type QueryResult struct {
+	Id   string
+	Time string
+}
+
+func (q *QueryResult) String() string {
+	return fmt.Sprintf("%s, %s \n", q.Id, q.Time)
+}
+
 func NewClient() Client {
 	projectId := os.Getenv("SANITY_STUDIO_PROJECT_ID")
 	dataset := os.Getenv("SANITY_STUDIO_API_DATASET")
-	token := os.Getenv("SANITY_STUDIO_TOKEN")
 
 	c, err := sanity.New(projectId,
 		sanity.WithCallbacks(sanity.Callbacks{
@@ -24,7 +32,6 @@ func NewClient() Client {
 				log.Printf("Sanity queried in %d ms!", result.Time)
 			},
 		}),
-		sanity.WithToken(token),
 		sanity.WithDataset(dataset))
 
 	if err != nil {
@@ -36,14 +43,15 @@ func NewClient() Client {
 	}
 }
 
-func (c *Client) RunQuery(rawQuery string, ch chan<- string) {
+func (c *Client) RunQuery(rawQuery string, ch chan<- QueryResult) {
 	query := c.instance.Query(rawQuery)
 
 	result, err := query.Do(context.Background())
 	if err != nil {
-		ch <- fmt.Sprintf("Error while running query %v", err)
 		log.Fatal(err)
 	}
-
-	ch <- result.Time.String()
+	ch <- QueryResult{
+		Id:   "",
+		Time: result.Time.String(),
+	}
 }

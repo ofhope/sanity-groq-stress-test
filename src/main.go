@@ -24,7 +24,7 @@ func main() {
 
 	file, err := os.Open(inputFile)
 	if err != nil {
-		log.Fatalf("Can't read file path %s", inputFile)
+		log.Fatalf("Failed opening input file: %s", err)
 	}
 	defer file.Close()
 
@@ -32,16 +32,24 @@ func main() {
 		log.Fatalf("No env file found. Please include one with SANITY config.")
 	}
 
-	ch := make(chan string)
+	ch := make(chan lib.QueryResult)
 	client := lib.NewClient()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		go client.RunQuery(scanner.Text(), ch)
 	}
-	scanner = bufio.NewScanner(file)
-	for scanner.Scan() {
-		fmt.Println(<-ch)
+
+	outputFile, err := os.Create("output.csv")
+	if err != nil {
+		log.Fatalf("Failed createing output file: %s", err)
 	}
-	for {
+	defer outputFile.Close()
+
+	fmt.Println("reading from channel")
+	outputFile.WriteString("ID, Time\n")
+
+	for result := range ch {
+		_, _ = outputFile.WriteString(result.String())
 	}
+	outputFile.Sync()
 }
