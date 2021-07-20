@@ -12,10 +12,11 @@ import (
 )
 
 func main() {
-	envFile := *flag.String("e", ".env", "optionally specify an env file with `example.env`")
+	envFile := flag.String("e", ".env", "optionally specify an env file with `example.env`")
+	outputFileName := flag.String("out", "output.csv", "optionally specify a file to output results `output.csv`")
 	flag.Parse()
-
 	inputFile := flag.Arg(0)
+
 	if inputFile == "" {
 		fmt.Println("You must pass a text file as an argument.")
 		flag.PrintDefaults()
@@ -28,7 +29,7 @@ func main() {
 	}
 	defer file.Close()
 
-	if godotenv.Load(envFile) != nil {
+	if godotenv.Load(*envFile) != nil {
 		log.Fatalf("No env file found. Please include one with SANITY config.")
 	}
 
@@ -39,7 +40,7 @@ func main() {
 		go client.RunQuery(scanner.Text(), ch)
 	}
 
-	outputFile, err := os.Create("output.csv")
+	outputFile, err := os.Create(*outputFileName)
 	if err != nil {
 		log.Fatalf("Failed createing output file: %s", err)
 	}
