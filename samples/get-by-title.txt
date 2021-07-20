@@ -1,0 +1,3 @@
+*[title == "foo"]
+*[title == "bar"]
+*[title == "baz"]
