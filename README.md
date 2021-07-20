@@ -16,6 +16,12 @@ SANITY_STUDIO_API_DATASET=development
 
 ## Usage
 
+The command can be run via a terminal.
+
+```bash
+groq-test -out example-test.csv ./samples/get-by-id.txt
+```
+
 ```bash
 Usage of groq-test:
   -e example.env
